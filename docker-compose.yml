@@ -1,0 +1,46 @@
+version: '3.9'
+
+services:
+  postgresdb: 
+    image: postgres:14.11
+    container_name: first_postgres_db
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_USER=root
+      - POSTGRES_DB=my_database
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - postgres-bridge
+
+  api:
+    build: .
+    container_name: login_api
+    ports:
+      - 8080:8080
+    volumes:
+      - .:/api
+    environment:
+      - DB_HOST=postgresdb
+      - DB_CONNECTION=postgres-bridge
+      - DB_NAME=my_database
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_PORT=5432
+      - API_HOST=0.0.0.0
+      - API_PORT=8080
+      - API_DEBUG=True
+
+    networks:
+      - postgres-bridge
+    depends_on:
+      - postgresdb
+volumes:
+  postgres_data:
+
+networks:
+  postgres-bridge:
+    driver: bridge
