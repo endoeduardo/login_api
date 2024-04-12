@@ -7,6 +7,7 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection
+from utils.api_functions import validate_user_data
 
 load_dotenv()
 
@@ -22,7 +23,8 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Server está online!"
+    """Retorna se o server está online"""
+    return jsonify({"message": "O servidor está online!"})
 
 
 @app.route('/login', methods=['POST'])
@@ -121,6 +123,7 @@ def erase_db():
 
 @app.route('/create_random_users', methods=['GET'])
 def create_users():
+    """"Cria 10 usuários randomicamente"""
     connection = create_connection(
         db_name=DB_NAME,
         db_host=DB_HOST,
@@ -152,8 +155,63 @@ def create_users():
     cursor.close()
     connection.close()
 
-
     return make_response({'message': 'created 10 users!'}, 200)
+
+
+@app.route('/register_user', methods=['POST'])
+def register_user():
+    """Endpoint que registra um usuário no banco de dados"""
+    connection = create_connection(
+        db_name=DB_NAME,
+        db_host=DB_HOST,
+        db_port=DB_PORT,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD
+    )
+    cursor = connection.cursor()
+
+    data = request.json
+
+    if not data or not validate_user_data(data):
+        return jsonify({'error': 'Invalid or missing data'}), 400
+    
+    query = """INSERT INTO users (NAME, USERNAME, PASSWORD, EMAIL, AGE)
+    VALUES (%s, %s, %s, %s, %s);
+    """
+
+    cursor.execute(query, (data['name'], data['username'], data['password'], data['email'], data['age']))
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({'message': 'Successfully registered a user'}), 200
+
+
+@app.route('/delete_user', methods=['POST'])
+def delete_user():
+    """Deleta um usuário da base de usuários"""
+    connection = create_connection(
+        db_name=DB_NAME,
+        db_host=DB_HOST,
+        db_port=DB_PORT,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD
+    )
+    cursor = connection.cursor()
+    data = request.json
+
+    query = """DELETE FROM users WHERE username = %s"""
+    if data:
+        cursor.execute(query, (data['username'], ))
+        connection.commit()
+
+        return jsonify({"message": f"Successfully delete the user {data['username']}"})
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({"message": "Invalid values"}), 400
 
 
 if __name__ == "__main__":
