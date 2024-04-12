@@ -1,6 +1,7 @@
 """Código de rotas""" 
 import os
-import json, random
+import json
+import random
 import uuid
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, make_response
@@ -141,7 +142,7 @@ def create_users():
     """
     fake = Faker()
 
-    for i in range(0, 10):
+    for _ in range(0, 10):
         user_id = uuid.uuid4()
         name = fake.name()
         passowrd = random.randint(100, 999)
@@ -150,7 +151,7 @@ def create_users():
         age = random.randint(18, 110)
 
         cursor.execute(query, (user_id, name, passowrd, email, username, age))
-    
+
     connection.commit()
     cursor.close()
     connection.close()
@@ -174,12 +175,12 @@ def register_user():
 
     if not data or not validate_user_data(data):
         return jsonify({'error': 'Invalid or missing data'}), 400
-    
+
     query = """INSERT INTO users (NAME, USERNAME, PASSWORD, EMAIL, AGE)
     VALUES (%s, %s, %s, %s, %s);
     """
-
-    cursor.execute(query, (data['name'], data['username'], data['password'], data['email'], data['age']))
+    insertion_values = (data['name'], data['username'], data['password'], data['email'], data['age'])
+    cursor.execute(query, insertion_values)
     connection.commit()
 
     cursor.close()
