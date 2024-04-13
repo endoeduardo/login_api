@@ -46,12 +46,14 @@ def login():
     #query o usuário selecionado e retorna a sua senha
     query_user = """SELECT password FROM users WHERE username = %s"""
     cursor.execute(query_user, (data['username'], ))
-    password, = cursor.fetchone()
+    result = cursor.fetchone()
 
     cursor.close()
     connection.close()
-    if not password:
+    if not result:
         return jsonify({"message": "User not found"}), 400
+
+    password, = result
     if password == str(data['password']):
         response_data = {
             'Message': 'Success',
