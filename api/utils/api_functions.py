@@ -1,5 +1,6 @@
 """Possuí as funções utilizadas pelas api"""
 import json
+import hashlib
 
 
 def validate_user_data(data: json) -> bool:
@@ -15,3 +16,14 @@ def validate_user_data(data: json) -> bool:
         if field != 'age' and not isinstance(data[field], str):
             return False
     return True
+
+
+def generate_hash(password: str):
+    """Gera um hash"""
+    hashed_password = hashlib.sha256(password.encode()).hexdigest()
+
+    return hashed_password
+
+
+if __name__ == "__main__":
+    print(generate_hash("secreto"))
