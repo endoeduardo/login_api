@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection, find_user
-from utils.api_functions import validate_user_data, generate_jwt, decode_jwt
+from utils.api_functions import validate_user_data, generate_jwt, decode_jwt, generate_hash
 
 
 load_dotenv()
@@ -54,7 +54,8 @@ def login():
         return jsonify({"message": "User not found"}), 400
 
     username, password = result
-    if password == str(data['password']):
+    hashed_password = generate_hash(str(data['password']))
+    if password == hashed_password:
         payload_data = {
             'username': username,
             'password': password
@@ -142,6 +143,30 @@ def erase_db():
     return make_response({'message': 'Deleted all users from users!'}, 200)
 
 
+@app.route('/generate_admin_user', methods=["GET"])
+def generate_admin_user():
+    """Cria um super usuárrio"""
+    connection = create_connection(
+        db_name=DB_NAME,
+        db_host=DB_HOST,
+        db_port=DB_PORT,
+        db_user=DB_USER,
+        db_password=DB_PASSWORD
+    )
+    cursor = connection.cursor()
+    query = """INSERT INTO users (NAME, USERNAME, PASSWORD, EMAIL, AGE, ROLE)
+    VALUES (%s, %s, %s, %s, %s, %s);"""
+
+    hashed_password = generate_hash('1234')
+    cursor.execute(query, ('eduardo', 'eduardo07', hashed_password, 'eduardo.t.endo@gmail.com', 26, 'admin'))
+    connection.commit()
+
+    cursor.close()
+    connection.close()
+
+    return jsonify({'message': 'success'}), 200
+
+
 @app.route('/create_random_users', methods=['GET'])
 def create_users():
     """"Cria 10 usuários randomicamente"""
@@ -165,7 +190,7 @@ def create_users():
     for _ in range(0, 10):
         user_id = uuid.uuid4()
         name = fake.name()
-        passowrd = random.randint(100, 999)
+        passowrd = generate_hash(str(random.randint(100, 999)))
         email = name.lower().replace(' ', '_') + '@gmail.com'
         username = name.split()[1] + str(random.randint(1, 10))
         age = random.randint(18, 110)
@@ -200,7 +225,7 @@ def register_user():
 
     #Check se o usuário não é repetido
     if find_user(cursor, data['username']):
-        cursor.closer()
+        cursor.close()
         connection.close()
         return jsonify({"message": "Failed to register, user already exists!"}), 400
 
