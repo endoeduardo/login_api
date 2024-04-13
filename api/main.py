@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection, find_user
-from utils.api_functions import validate_user_data
+from utils.api_functions import validate_user_data, generate_jwt
 
 load_dotenv()
 
@@ -44,7 +44,7 @@ def login():
     cursor = connection.cursor()
 
     #query o usuário selecionado e retorna a sua senha
-    query_user = """SELECT password FROM users WHERE username = %s"""
+    query_user = """SELECT username, password FROM users WHERE username = %s"""
     cursor.execute(query_user, (data['username'], ))
     result = cursor.fetchone()
 
@@ -53,11 +53,17 @@ def login():
     if not result:
         return jsonify({"message": "User not found"}), 400
 
-    password, = result
+    username, password = result
     if password == str(data['password']):
+        payload_data = {
+            'username': username,
+            'password': password
+        }
+
+        token = generate_jwt(payload=payload_data, secret_key=os.getenv('SECRET_KEY'))
         response_data = {
             'Message': 'Success',
-            'data': {'jwt': 'random_token'}
+            'data': {'jwt': token}
         }
         return jsonify(response_data), 200
     return jsonify({"message": "Login Failed"}), 400

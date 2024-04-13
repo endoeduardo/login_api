@@ -1,7 +1,8 @@
 """Possuí as funções utilizadas pelas api"""
+from datetime import datetime, timedelta
 import json
 import hashlib
-
+import jwt
 
 def validate_user_data(data: json) -> bool:
     """Verifica se os campos estão presentes"""
@@ -25,5 +26,9 @@ def generate_hash(password: str):
     return hashed_password
 
 
-if __name__ == "__main__":
-    print(generate_hash("secreto"))
+def generate_jwt(payload: dict, secret_key: str) -> str:
+    """Gera um JWT"""
+    payload['exp'] = datetime.now() + timedelta(minutes=15)
+    token = jwt.encode(payload=payload, key=secret_key, algorithm="HS256")
+
+    return token
