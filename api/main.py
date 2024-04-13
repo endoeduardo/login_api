@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
-from utils.db_functions import create_connection
+from utils.db_functions import create_connection, find_user
 from utils.api_functions import validate_user_data
 
 load_dotenv()
@@ -171,15 +171,26 @@ def register_user():
     )
     cursor = connection.cursor()
 
+    #Check se foram enviados todos os dados para ser registrado
     data = request.json
-
     if not data or not validate_user_data(data):
+        cursor.close()
+        connection.close()
         return jsonify({'error': 'Invalid or missing data'}), 400
+
+    #Check se o usuário não é repetido
+    if find_user(cursor, data['username']):
+        cursor.closer()
+        connection.close()
+        return jsonify({"message": "Failed to register, user already exists!"}), 400
 
     query = """INSERT INTO users (NAME, USERNAME, PASSWORD, EMAIL, AGE)
     VALUES (%s, %s, %s, %s, %s);
     """
-    insertion_values = (data['name'], data['username'], data['password'], data['email'], data['age'])
+
+    insertion_values = (
+        data['name'], data['username'], data['password'], data['email'], data['age']
+    )
     cursor.execute(query, insertion_values)
     connection.commit()
 
