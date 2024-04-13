@@ -43,21 +43,22 @@ def login():
 
     cursor = connection.cursor()
 
-    query_user = """SELECT name FROM users WHERE name = %s"""
-
-    cursor.execute(query_user, (data['user'], ))
-
-    result = cursor.fetchone()
+    #query o usuário selecionado e retorna a sua senha
+    query_user = """SELECT password FROM users WHERE username = %s"""
+    cursor.execute(query_user, (data['username'], ))
+    password, = cursor.fetchone()
 
     cursor.close()
     connection.close()
-
-    if result:
-        token = {
-            'jwt': 'random_token'
+    if not password:
+        return jsonify({"message": "User not found"}), 400
+    if password == str(data['password']):
+        response_data = {
+            'Message': 'Success',
+            'data': {'jwt': 'random_token'}
         }
-        return jsonify(token)
-    return "Login failed"
+        return jsonify(response_data), 200
+    return jsonify({"message": "Login Failed"}), 400
 
 
 @app.route('/user_list', methods=['GET'])
