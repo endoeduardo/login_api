@@ -8,7 +8,8 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection, find_user
-from utils.api_functions import validate_user_data, generate_jwt
+from utils.api_functions import validate_user_data, generate_jwt, decode_jwt
+
 
 load_dotenv()
 
@@ -20,7 +21,6 @@ DB_PORT = os.getenv('DB_PORT')
 
 
 app = Flask(__name__)
-
 
 @app.route('/')
 def home():
@@ -67,6 +67,17 @@ def login():
         }
         return jsonify(response_data), 200
     return jsonify({"message": "Login Failed"}), 400
+
+
+@app.route('/decode_jwt', methods=["POST"])
+def decode_jwt_token():
+    """Decode a jwt token and returns it decoded"""
+    payload = request.get_json()
+    token = payload['jwt']
+
+    data = decode_jwt(token=token, secret_key=os.getenv('SECRET_KEY'))
+
+    return jsonify(data), 200
 
 
 @app.route('/user_list', methods=['GET'])
