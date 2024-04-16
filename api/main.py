@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection, find_user
-from utils.api_functions import validate_user_data, generate_jwt, decode_jwt, generate_hash
+from utils.api_functions import validate_user_data, generate_jwt, token_required, generate_hash
 
 
 load_dotenv()
@@ -70,18 +70,8 @@ def login():
     return jsonify({"message": "Login Failed"}), 400
 
 
-@app.route('/decode_jwt', methods=["POST"])
-def decode_jwt_token():
-    """Decode a jwt token and returns it decoded"""
-    payload = request.get_json()
-    token = payload['jwt']
-
-    data = decode_jwt(token=token, secret_key=os.getenv('SECRET_KEY'))
-
-    return jsonify(data), 200
-
-
 @app.route('/user_list', methods=['GET'])
+@token_required
 def get_user_list():
     """retorna uma lista de usuários cadastrados no banco de dados"""
     connection = create_connection(
@@ -120,6 +110,7 @@ def get_user_list():
 
 
 @app.route('/erase_all_users', methods=['GET'])
+@token_required
 def erase_db():
     """apaga toda a tabela de usuários"""
     connection = create_connection(
@@ -145,7 +136,7 @@ def erase_db():
 
 @app.route('/generate_admin_user', methods=["GET"])
 def generate_admin_user():
-    """Cria um super usuárrio"""
+    """Cria um super usuário"""
     connection = create_connection(
         db_name=DB_NAME,
         db_host=DB_HOST,
@@ -168,6 +159,7 @@ def generate_admin_user():
 
 
 @app.route('/create_random_users', methods=['GET'])
+@token_required
 def create_users():
     """"Cria 10 usuários randomicamente"""
     connection = create_connection(
@@ -205,6 +197,7 @@ def create_users():
 
 
 @app.route('/register_user', methods=['POST'])
+@token_required
 def register_user():
     """Endpoint que registra um usuário no banco de dados"""
     connection = create_connection(
@@ -246,6 +239,7 @@ def register_user():
 
 
 @app.route('/delete_user', methods=['POST'])
+@token_required
 def delete_user():
     """Deleta um usuário da base de usuários"""
     connection = create_connection(

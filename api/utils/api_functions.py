@@ -1,8 +1,11 @@
 """Possuí as funções utilizadas pelas api"""
+import os
+from functools import wraps
 from datetime import datetime, timedelta
 import json
 import hashlib
 import jwt
+from flask import jsonify, request
 
 def validate_user_data(data: json) -> bool:
     """Verifica se os campos estão presentes"""
@@ -34,26 +37,23 @@ def generate_jwt(payload: dict, secret_key: str) -> str:
     return token
 
 
-def decode_jwt(token: str, secret_key: str) -> str:
-    """Decode a jwt token"""
-    try:
-        result = jwt.decode(jwt=token, key=secret_key, algorithms=["HS256"])
-    except jwt.exceptions.InvalidSignatureError as e:
-        result = {
-            "message": "Invalid Token!",
-            "exception": str(e)
-        }
+def token_required(fn):
+    @wraps(fn)
+    def decode_jwt(*args, **kwargs):
+        """Decode a jwt token"""
+        token = request.headers.get('Authorization')
 
-    except jwt.exceptions.DecodeError as e:
-        result = {
-            "message": "Error in decoding a token!",
-            "exception": str(e)
-        }
+        if not token:
+            return jsonify({'message': 'missing token'}), 403
 
-    except jwt.exceptions.ExpiredSignatureError as e:
-        result = {
-            "message": "Expired Token!",
-            "exception": str(e)
-        }
+        try:
+            _ = jwt.decode(jwt=token, key=os.getenv('SECRET_KEY'), algorithms=["HS256"])
 
-    return result
+        except Exception as e:
+            return jsonify({
+                'message': 'Authentication failed',
+                'exception': str(e)
+            }), 401
+
+        return fn(*args, **kwargs)
+    return decode_jwt
