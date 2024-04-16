@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, make_response
 from faker import Faker
 import psycopg2.extras
 from utils.db_functions import create_connection, find_user
-from utils.api_functions import validate_user_data, generate_jwt, token_required, generate_hash
+from utils.api_functions import validate_user_data, generate_jwt, token_required, generate_hash, role_required
 
 
 load_dotenv()
@@ -226,8 +226,10 @@ def register_user():
     VALUES (%s, %s, %s, %s, %s);
     """
 
+    #Cria uma hash para a senha antes
+    password = generate_hash(data['password'])
     insertion_values = (
-        data['name'], data['username'], data['password'], data['email'], data['age']
+        data['name'], data['username'], password, data['email'], data['age']
     )
     cursor.execute(query, insertion_values)
     connection.commit()
@@ -263,6 +265,14 @@ def delete_user():
     connection.close()
 
     return jsonify({"message": "Invalid values"}), 400
+
+
+@app.route('/test-admin', methods=['GET'])
+@role_required(['admin'])
+@token_required
+def test_admin():
+    """endpoint para testar o papel de Admin"""
+    return jsonify({'Message': 'Você é um Admin!'})
 
 
 if __name__ == "__main__":
